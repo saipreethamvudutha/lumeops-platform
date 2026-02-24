@@ -35,6 +35,50 @@ export interface Alert {
   acknowledged_at: string | null;
 }
 
+// ── Alert Management ─────────────────────────────────────────────
+
+export interface AlertDetail {
+  id: string;
+  model_id: string;
+  alert_type: string;
+  severity: string;
+  message: string;
+  details: Record<string, unknown> | null;
+  triggered_at: string;
+  inference_id: string | null;
+  acknowledged_at: string | null;
+  acknowledged_by: string | null;
+  resolved_at: string | null;
+  notified_email: boolean;
+  notified_slack: boolean;
+  created_at: string;
+}
+
+export interface AlertListResponse {
+  total: number;
+  limit: number;
+  offset: number;
+  has_more: boolean;
+  alerts: AlertDetail[];
+}
+
+export interface AlertStats {
+  total_active: number;
+  total_acknowledged: number;
+  total_resolved: number;
+  by_severity: Record<string, number>;
+  by_type: Record<string, number>;
+  mean_time_to_acknowledge_minutes: number | null;
+  mean_time_to_resolve_minutes: number | null;
+  generated_at: string;
+}
+
+export interface AlertBulkResult {
+  processed: number;
+  skipped: number;
+  alert_ids: string[];
+}
+
 export interface ComplianceReport {
   report_id: string;
   generated_at: string;

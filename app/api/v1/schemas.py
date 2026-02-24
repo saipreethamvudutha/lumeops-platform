@@ -246,7 +246,7 @@ class ModelResponse(BaseModel):
 
 
 class AlertResponse(BaseModel):
-    """Alert info."""
+    """Alert info (basic)."""
 
     id: str
     model_id: str
@@ -256,6 +256,103 @@ class AlertResponse(BaseModel):
     triggered_at: datetime
     acknowledged_at: datetime | None
     resolved_at: datetime | None
+
+
+class AlertDetailResponse(BaseModel):
+    """Full alert details including metadata and resolution info."""
+
+    id: str
+    model_id: str
+    alert_type: str
+    severity: str
+    message: str
+    details: dict[str, Any] | None
+    triggered_at: datetime
+    inference_id: str | None
+    # Resolution workflow
+    acknowledged_at: datetime | None
+    acknowledged_by: str | None
+    resolved_at: datetime | None
+    # Notification status
+    notified_email: bool
+    notified_slack: bool
+    # Timestamps
+    created_at: datetime
+
+
+class AlertListResponse(BaseModel):
+    """Paginated list of alerts."""
+
+    total: int
+    limit: int
+    offset: int
+    has_more: bool
+    alerts: list[AlertDetailResponse]
+
+
+class AlertAcknowledgeRequest(BaseModel):
+    """Request to acknowledge an alert."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    acknowledged_by: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        description="Who is acknowledging this alert (name or email)",
+    )
+
+
+class AlertResolveRequest(BaseModel):
+    """Request to resolve an alert."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    resolution_note: str | None = Field(
+        None,
+        max_length=2000,
+        description="Optional note about how the alert was resolved",
+    )
+
+
+class AlertStatsResponse(BaseModel):
+    """Aggregated alert statistics."""
+
+    total_active: int
+    total_acknowledged: int
+    total_resolved: int
+    by_severity: dict[str, int]
+    by_type: dict[str, int]
+    mean_time_to_acknowledge_minutes: float | None
+    mean_time_to_resolve_minutes: float | None
+    generated_at: datetime
+
+
+class AlertBulkActionRequest(BaseModel):
+    """Bulk acknowledge or resolve multiple alerts."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    alert_ids: list[str] = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="List of alert IDs to act on",
+    )
+    acknowledged_by: str | None = Field(
+        None,
+        min_length=1,
+        max_length=255,
+        description="Who is acknowledging (required for acknowledge action)",
+    )
+
+
+class AlertBulkActionResponse(BaseModel):
+    """Result of a bulk action."""
+
+    processed: int
+    skipped: int
+    alert_ids: list[str]
 
 
 # ══════════════════════════════════════════════════════════════════

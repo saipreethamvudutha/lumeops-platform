@@ -22,7 +22,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import ORJSONResponse
 
 from app.api.v1 import (
-    api_keys, compliance, dashboard, encryption, health,
+    alerts, api_keys, compliance, dashboard, encryption, health,
     inference_list, ingest, models, timeseries, webhooks, ws,
 )
 from app.core.config import get_settings
@@ -228,6 +228,13 @@ def create_app() -> FastAPI:
         inference_list.router,
         prefix=f"{prefix}/inferences",
         tags=["inferences"],
+    )
+
+    # Alert management
+    app.include_router(
+        alerts.router,
+        prefix=f"{prefix}/alerts",
+        tags=["alerts"],
     )
 
     # Webhook management

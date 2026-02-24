@@ -7,6 +7,10 @@ import type {
   TimeSeriesResponse,
   QualityTrendResponse,
   InferenceListResponse,
+  AlertDetail,
+  AlertListResponse,
+  AlertStats,
+  AlertBulkResult,
   WebhookInfo,
   WebhookCreateResponse,
   WebhookListResponse,
@@ -73,6 +77,66 @@ export async function fetchInferences(params: {
   if (params.offset) searchParams.set('offset', String(params.offset));
   const qs = searchParams.toString();
   const { data } = await api.get<InferenceListResponse>(`/api/v1/inferences${qs ? `?${qs}` : ''}`);
+  return data;
+}
+
+// ── Alert Endpoints ──────────────────────────────────────────────
+
+export async function fetchAlerts(params: {
+  status?: string;
+  severity?: string;
+  alert_type?: string;
+  days?: number;
+  limit?: number;
+  offset?: number;
+  sort_by?: string;
+  sort_order?: string;
+} = {}): Promise<AlertListResponse> {
+  const sp = new URLSearchParams();
+  if (params.status) sp.set('alert_status', params.status);
+  if (params.severity) sp.set('severity', params.severity);
+  if (params.alert_type) sp.set('alert_type', params.alert_type);
+  if (params.days) sp.set('days', String(params.days));
+  if (params.limit) sp.set('limit', String(params.limit));
+  if (params.offset) sp.set('offset', String(params.offset));
+  if (params.sort_by) sp.set('sort_by', params.sort_by);
+  if (params.sort_order) sp.set('sort_order', params.sort_order);
+  const qs = sp.toString();
+  const { data } = await api.get<AlertListResponse>(`/api/v1/alerts${qs ? `?${qs}` : ''}`);
+  return data;
+}
+
+export async function fetchAlertStats(days: number = 30): Promise<AlertStats> {
+  const { data } = await api.get<AlertStats>(`/api/v1/alerts/stats?days=${days}`);
+  return data;
+}
+
+export async function acknowledgeAlert(id: string, acknowledgedBy: string): Promise<AlertDetail> {
+  const { data } = await api.post<AlertDetail>(`/api/v1/alerts/${id}/ack`, {
+    acknowledged_by: acknowledgedBy,
+  });
+  return data;
+}
+
+export async function resolveAlert(id: string, resolutionNote?: string): Promise<AlertDetail> {
+  const { data } = await api.post<AlertDetail>(`/api/v1/alerts/${id}/resolve`, {
+    resolution_note: resolutionNote || null,
+  });
+  return data;
+}
+
+export async function bulkAcknowledgeAlerts(alertIds: string[], acknowledgedBy: string): Promise<AlertBulkResult> {
+  const { data } = await api.post<AlertBulkResult>('/api/v1/alerts/bulk-ack', {
+    alert_ids: alertIds,
+    acknowledged_by: acknowledgedBy,
+  });
+  return data;
+}
+
+export async function bulkResolveAlerts(alertIds: string[]): Promise<AlertBulkResult> {
+  const { data } = await api.post<AlertBulkResult>('/api/v1/alerts/bulk-resolve', {
+    alert_ids: alertIds,
+  });
   return data;
 }
 

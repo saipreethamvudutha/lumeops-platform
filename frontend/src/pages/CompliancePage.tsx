@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Shield, Download, RefreshCw, CheckCircle, Lock, Eye, FileText } from 'lucide-react';
+import { Shield, Download, RefreshCw, CheckCircle, Lock, Eye, FileText, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { fetchComplianceReport } from '../api/client';
+import { fetchComplianceReport, downloadCompliancePdf } from '../api/client';
 import { ComplianceChecklist } from '../components/ComplianceChecklist';
 import type { ComplianceReport } from '../types/api';
 
@@ -9,6 +9,20 @@ export function CompliancePage() {
   const [report, setReport] = useState<ComplianceReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
+  const handleExportPdf = async () => {
+    setDownloading(true);
+    setDownloadError(null);
+    try {
+      await downloadCompliancePdf(report?.period.days ?? 30);
+    } catch (err) {
+      setDownloadError(err instanceof Error ? err.message : 'Failed to download PDF');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const loadReport = async () => {
     setLoading(true);
@@ -60,12 +74,31 @@ export function CompliancePage() {
             Compliance evidence and audit-ready reports
           </p>
         </div>
-        <button className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-white transition-all hover:opacity-90"
-          style={{ background: 'var(--gradient-brand)' }}>
-          <Download className="h-4 w-4" />
-          Export PDF
+        <button
+          onClick={handleExportPdf}
+          disabled={downloading}
+          className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-50"
+          style={{ background: 'var(--gradient-brand)' }}
+        >
+          {downloading ? (
+            <RefreshCw className="h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="h-4 w-4" />
+          )}
+          {downloading ? 'Generating...' : 'Export PDF'}
         </button>
       </div>
+
+      {/* PDF Download Error */}
+      {downloadError && (
+        <div className="mb-4 flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
+          <AlertTriangle className="h-4 w-4 text-red-400 shrink-0" />
+          <p className="text-sm text-red-300">{downloadError}</p>
+          <button onClick={() => setDownloadError(null)} className="ml-auto text-red-400 hover:text-red-300 text-xs">
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Compliance Status Banner */}
       <motion.div

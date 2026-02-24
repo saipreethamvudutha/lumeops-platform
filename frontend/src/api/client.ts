@@ -3,6 +3,9 @@ import type {
   DashboardStats,
   ComplianceReport,
   ApiKeyInfo,
+  ApiKeyCreateRequest,
+  ApiKeyCreateResponse,
+  ApiKeyRevokeResponse,
   HealthStatus,
   TimeSeriesResponse,
   QualityTrendResponse,
@@ -49,9 +52,35 @@ export async function fetchComplianceReport(): Promise<ComplianceReport> {
   return data;
 }
 
+export async function downloadCompliancePdf(days: number = 30): Promise<void> {
+  const response = await api.get('/api/v1/reports/hipaa/pdf', {
+    params: { days },
+    responseType: 'blob',
+  });
+  const blob = new Blob([response.data], { type: 'application/pdf' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `lumeops-hipaa-compliance-${new Date().toISOString().split('T')[0]}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+}
+
 export async function fetchApiKeys(): Promise<ApiKeyInfo[]> {
   const { data } = await api.get<{ keys: ApiKeyInfo[] }>('/api/v1/apikeys');
   return data.keys;
+}
+
+export async function createApiKey(payload: ApiKeyCreateRequest): Promise<ApiKeyCreateResponse> {
+  const { data } = await api.post<ApiKeyCreateResponse>('/api/v1/apikeys', payload);
+  return data;
+}
+
+export async function revokeApiKey(keyId: string): Promise<ApiKeyRevokeResponse> {
+  const { data } = await api.delete<ApiKeyRevokeResponse>(`/api/v1/apikeys/${keyId}`);
+  return data;
 }
 
 export async function fetchHealth(): Promise<HealthStatus> {

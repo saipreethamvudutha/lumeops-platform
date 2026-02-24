@@ -4,7 +4,7 @@ import {
   ChevronRight, Shield, Zap, BarChart3, Target, Clock, Database,
   ArrowLeft, Eye, Gauge,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   fetchModelsOverview, fetchModelPerformance, fetchPerformanceTimeseries,
 } from '../api/client';
@@ -91,7 +91,7 @@ export function ModelsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [perf, setPerf] = useState<ModelPerformanceSummary | null>(null);
   const [series, setSeries] = useState<PerformanceTimeseriesPoint[]>([]);
-  const [detailLoading, setDetailLoading] = useState(false);
+  const [_detailLoading, setDetailLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -128,7 +128,7 @@ export function ModelsPage() {
 
   // ── Detail View ─────────────────────────────────────────────
   if (selectedId && perf) {
-    return <ModelDetailView perf={perf} series={series} loading={detailLoading} onBack={goBack} />;
+    return <ModelDetailView perf={perf} series={series} onBack={goBack} />;
   }
 
   // ── List View ───────────────────────────────────────────────
@@ -261,10 +261,9 @@ export function ModelsPage() {
 //  MODEL DETAIL VIEW
 // ══════════════════════════════════════════════════════════════════
 
-function ModelDetailView({ perf, series, loading, onBack }: {
+function ModelDetailView({ perf, series, onBack }: {
   perf: ModelPerformanceSummary;
   series: PerformanceTimeseriesPoint[];
-  loading: boolean;
   onBack: () => void;
 }) {
   const m = perf.model;
@@ -410,7 +409,7 @@ function ModelDetailView({ perf, series, loading, onBack }: {
                 <Tooltip
                   contentStyle={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
                   labelFormatter={(t) => new Date(t as string).toLocaleString()}
-                  formatter={(val: number) => [`${(val * 100).toFixed(1)}%`, 'Quality Rate']}
+                  formatter={(val: number | undefined) => [`${((val ?? 0) * 100).toFixed(1)}%`, 'Quality Rate']}
                 />
                 <Bar dataKey="quality_rate" name="Quality" fill="#10b981" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -448,7 +447,7 @@ function ModelDetailView({ perf, series, loading, onBack }: {
                 <Tooltip
                   contentStyle={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
                   labelFormatter={(t) => new Date(t as string).toLocaleString()}
-                  formatter={(val: number) => [`${(val * 100).toFixed(1)}%`, 'Outlier Rate']}
+                  formatter={(val: number | undefined) => [`${((val ?? 0) * 100).toFixed(1)}%`, 'Outlier Rate']}
                 />
                 <Area type="monotone" dataKey="outlier_rate" name="Outlier Rate" stroke="#f59e0b" fill="url(#outlierGrad)" />
               </AreaChart>

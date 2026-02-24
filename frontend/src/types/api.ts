@@ -134,6 +134,27 @@ export interface ApiKeyInfo {
   scopes: string[];
 }
 
+export interface ApiKeyCreateRequest {
+  name: string;
+  expires_in_days?: number;
+  scopes?: string[];
+}
+
+export interface ApiKeyCreateResponse {
+  api_key: string;
+  name: string;
+  created_at: string;
+  expires_at: string;
+  scopes: string[];
+  warning: string;
+}
+
+export interface ApiKeyRevokeResponse {
+  status: string;
+  key_id: string;
+  revoked_at: string;
+}
+
 export interface HealthStatus {
   status: string;
   version: string;

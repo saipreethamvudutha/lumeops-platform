@@ -45,6 +45,7 @@ Thumbs.db
 *.crt
 credentials.json
 service-account.json
+nginx/certs/
 
 # Logs
 *.log

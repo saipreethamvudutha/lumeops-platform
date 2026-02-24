@@ -556,3 +556,145 @@ class WebhookDeliveryListResponse(BaseModel):
 
     total: int
     deliveries: list[WebhookDeliveryResponse]
+
+
+# ══════════════════════════════════════════════════════════════════
+#  Model Performance Schemas
+# ══════════════════════════════════════════════════════════════════
+
+
+class ModelPerformanceSummary(BaseModel):
+    """Comprehensive model performance metrics."""
+
+    model: dict[str, Any]
+    period: dict[str, Any]
+    volume: dict[str, Any]
+    predictions: dict[str, Any]
+    accuracy: dict[str, Any]
+    health: dict[str, Any]
+    confidence: dict[str, Any]
+    drift: dict[str, Any]
+    alerts: dict[str, Any]
+    generated_at: datetime
+
+
+class ModelOverviewItem(BaseModel):
+    """Summary stats for a single model in the models list."""
+
+    id: str
+    model_name: str
+    model_version: str | None
+    framework: str | None
+    is_active: bool
+    created_at: datetime | None
+    total_inferences: int
+    recent_inferences: int
+    recent_outliers: int
+    recent_quality_issues: int
+    outlier_rate: float
+    quality_rate: float
+    prediction_mean: float | None
+    avg_confidence: float | None
+    ground_truth_coverage: float
+    last_inference_at: datetime | None
+
+
+class ModelsOverviewResponse(BaseModel):
+    """List of models with performance overview."""
+
+    total: int
+    days: int
+    models: list[ModelOverviewItem]
+    generated_at: datetime
+
+
+class PerformanceTimeseriesPoint(BaseModel):
+    """Single data point in performance timeseries."""
+
+    timestamp: datetime
+    total_inferences: int
+    with_ground_truth: int
+    prediction_mean: float | None
+    prediction_std: float | None
+    prediction_min: float | None
+    prediction_max: float | None
+    outlier_count: int
+    outlier_rate: float
+    quality_issue_count: int
+    quality_rate: float
+    pii_inferences: int
+    total_pii_redacted: int
+    avg_confidence: float | None
+    mae: float | None
+    rmse: float | None
+
+
+class PerformanceTimeseriesResponse(BaseModel):
+    """Time-bucketed performance data for charts."""
+
+    model_id: str
+    days: int
+    granularity: str
+    series: list[PerformanceTimeseriesPoint]
+    generated_at: datetime
+
+
+class GroundTruthSubmitRequest(BaseModel):
+    """Submit ground truth for a single inference."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    ground_truth: float = Field(
+        ...,
+        description="Actual observed outcome value",
+    )
+
+
+class GroundTruthSubmitResponse(BaseModel):
+    """Response after submitting ground truth."""
+
+    inference_id: str
+    model_id: str
+    prediction: float
+    ground_truth: float
+    absolute_error: float
+    submitted_at: datetime
+
+
+class GroundTruthBatchItem(BaseModel):
+    """Single item in a ground truth batch submission."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    inference_id: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        description="ID of the inference to attach ground truth to",
+    )
+    ground_truth: float = Field(
+        ...,
+        description="Actual observed outcome value",
+    )
+
+
+class GroundTruthBatchRequest(BaseModel):
+    """Batch ground truth submission (up to 500 items)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    items: list[GroundTruthBatchItem] = Field(
+        ...,
+        min_length=1,
+        max_length=500,
+        description="List of inference ID + ground truth pairs",
+    )
+
+
+class GroundTruthBatchResponse(BaseModel):
+    """Result of batch ground truth submission."""
+
+    processed: int
+    skipped: int
+    total: int
+    errors: list[dict[str, str]] | None = None

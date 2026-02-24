@@ -273,3 +273,137 @@ export interface WebhookDeliveryListResponse {
   total: number;
   deliveries: WebhookDelivery[];
 }
+
+// ── Model Performance Tracking ──────────────────────────────────
+
+export interface ModelOverview {
+  id: string;
+  model_name: string;
+  model_version: string | null;
+  framework: string | null;
+  is_active: boolean;
+  created_at: string | null;
+  total_inferences: number;
+  recent_inferences: number;
+  recent_outliers: number;
+  recent_quality_issues: number;
+  outlier_rate: number;
+  quality_rate: number;
+  prediction_mean: number | null;
+  avg_confidence: number | null;
+  ground_truth_coverage: number;
+  last_inference_at: string | null;
+}
+
+export interface ModelsOverviewResponse {
+  total: number;
+  days: number;
+  models: ModelOverview[];
+  generated_at: string;
+}
+
+export interface ModelPerformanceSummary {
+  model: {
+    id: string;
+    model_name: string;
+    model_version: string | null;
+    description: string | null;
+    framework: string | null;
+    is_active: boolean;
+    tags: Record<string, string> | null;
+    created_at: string;
+  };
+  period: {
+    days: number;
+    start: string;
+    end: string;
+  };
+  volume: {
+    total: number;
+    today: number;
+    all_time: number;
+    with_ground_truth: number;
+    ground_truth_coverage: number;
+  };
+  predictions: {
+    mean: number | null;
+    std: number | null;
+    min: number | null;
+    max: number | null;
+    p50: number | null;
+    p95: number | null;
+    p99: number | null;
+  };
+  accuracy: {
+    mae: number | null;
+    rmse: number | null;
+    mean_error: number | null;
+  };
+  health: {
+    outlier_count: number;
+    outlier_rate: number;
+    quality_issue_count: number;
+    quality_rate: number;
+    pii_inferences: number;
+    total_pii_redacted: number;
+  };
+  confidence: {
+    avg: number | null;
+    min: number | null;
+    max: number | null;
+  };
+  drift: {
+    score: number | null;
+    status: string;
+    baseline_mean: number | null;
+    baseline_std: number | null;
+  };
+  alerts: {
+    total: number;
+    by_severity: Record<string, number>;
+  };
+  generated_at: string;
+}
+
+export interface PerformanceTimeseriesPoint {
+  timestamp: string;
+  total_inferences: number;
+  with_ground_truth: number;
+  prediction_mean: number | null;
+  prediction_std: number | null;
+  prediction_min: number | null;
+  prediction_max: number | null;
+  outlier_count: number;
+  outlier_rate: number;
+  quality_issue_count: number;
+  quality_rate: number;
+  pii_inferences: number;
+  total_pii_redacted: number;
+  avg_confidence: number | null;
+  mae: number | null;
+  rmse: number | null;
+}
+
+export interface PerformanceTimeseriesResponse {
+  model_id: string;
+  days: number;
+  granularity: string;
+  series: PerformanceTimeseriesPoint[];
+  generated_at: string;
+}
+
+export interface GroundTruthResult {
+  inference_id: string;
+  model_id: string;
+  prediction: number;
+  ground_truth: number;
+  absolute_error: number;
+  submitted_at: string;
+}
+
+export interface GroundTruthBatchResult {
+  processed: number;
+  skipped: number;
+  total: number;
+  errors: Array<{ inference_id: string; error: string }> | null;
+}

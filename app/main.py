@@ -23,7 +23,7 @@ from fastapi.responses import ORJSONResponse
 
 from app.api.v1 import (
     alerts, api_keys, compliance, dashboard, encryption, health,
-    inference_list, ingest, models, timeseries, webhooks, ws,
+    inference_list, ingest, models, performance, timeseries, webhooks, ws,
 )
 from app.core.config import get_settings
 from app.core.database import close_db, init_db
@@ -198,6 +198,13 @@ def create_app() -> FastAPI:
         api_keys.router,
         prefix=f"{prefix}/apikeys",
         tags=["api-keys"],
+    )
+    # Model performance tracking (registered BEFORE models router
+    # so /overview and /ground-truth/batch match before /{model_id})
+    app.include_router(
+        performance.router,
+        prefix=f"{prefix}/models",
+        tags=["model-performance"],
     )
     app.include_router(
         models.router,

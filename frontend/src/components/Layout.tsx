@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Shield, Key, Settings, Activity, List,
-  Heart, ChevronRight, Webhook, Bell,
+  Heart, ChevronRight, Webhook, Bell, Brain,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', description: 'Overview & metrics' },
   { to: '/inferences', icon: List, label: 'Inference Log', description: 'Browse records' },
+  { to: '/models', icon: Brain, label: 'Models', description: 'Performance & drift' },
   { to: '/alerts', icon: Bell, label: 'Alerts', description: 'Monitor & resolve' },
   { to: '/compliance', icon: Shield, label: 'Compliance', description: 'HIPAA reports' },
   { to: '/api-keys', icon: Key, label: 'API Keys', description: 'Authentication' },

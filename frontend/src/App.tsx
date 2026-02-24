@@ -6,6 +6,7 @@ import { CompliancePage } from './pages/CompliancePage';
 import { ApiKeysPage } from './pages/ApiKeysPage';
 import { AlertsPage } from './pages/AlertsPage';
 import { WebhooksPage } from './pages/WebhooksPage';
+import { ModelsPage } from './pages/ModelsPage';
 import { SettingsPage } from './pages/SettingsPage';
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/inferences" element={<InferencesPage />} />
+          <Route path="/models" element={<ModelsPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/compliance" element={<CompliancePage />} />
           <Route path="/api-keys" element={<ApiKeysPage />} />

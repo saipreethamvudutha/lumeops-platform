@@ -16,6 +16,11 @@ import type {
   WebhookListResponse,
   WebhookTestResult,
   WebhookDeliveryListResponse,
+  ModelsOverviewResponse,
+  ModelPerformanceSummary,
+  PerformanceTimeseriesResponse,
+  GroundTruthResult,
+  GroundTruthBatchResult,
 } from '../types/api';
 
 const api = axios.create({
@@ -193,6 +198,53 @@ export async function fetchWebhookDeliveries(
   const { data } = await api.get<WebhookDeliveryListResponse>(
     `/api/v1/webhooks/${id}/deliveries${qs ? `?${qs}` : ''}`,
   );
+  return data;
+}
+
+// ── Model Performance Endpoints ──────────────────────────────────
+
+export async function fetchModelsOverview(days: number = 7): Promise<ModelsOverviewResponse> {
+  const { data } = await api.get<ModelsOverviewResponse>(`/api/v1/models/overview?days=${days}`);
+  return data;
+}
+
+export async function fetchModelPerformance(modelId: string, days: number = 7): Promise<ModelPerformanceSummary> {
+  const { data } = await api.get<ModelPerformanceSummary>(`/api/v1/models/${modelId}/performance?days=${days}`);
+  return data;
+}
+
+export async function fetchPerformanceTimeseries(
+  modelId: string,
+  params: { days?: number; granularity?: 'hourly' | 'daily' } = {},
+): Promise<PerformanceTimeseriesResponse> {
+  const sp = new URLSearchParams();
+  if (params.days) sp.set('days', String(params.days));
+  if (params.granularity) sp.set('granularity', params.granularity);
+  const qs = sp.toString();
+  const { data } = await api.get<PerformanceTimeseriesResponse>(
+    `/api/v1/models/${modelId}/performance/timeseries${qs ? `?${qs}` : ''}`,
+  );
+  return data;
+}
+
+export async function submitGroundTruth(
+  modelId: string,
+  inferenceId: string,
+  groundTruth: number,
+): Promise<GroundTruthResult> {
+  const { data } = await api.post<GroundTruthResult>(
+    `/api/v1/models/${modelId}/ground-truth/${inferenceId}`,
+    { ground_truth: groundTruth },
+  );
+  return data;
+}
+
+export async function submitGroundTruthBatch(
+  items: Array<{ inference_id: string; ground_truth: number }>,
+): Promise<GroundTruthBatchResult> {
+  const { data } = await api.post<GroundTruthBatchResult>('/api/v1/models/ground-truth/batch', {
+    items,
+  });
   return data;
 }
 

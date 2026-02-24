@@ -166,3 +166,66 @@ export interface InferenceListResponse {
   has_more: boolean;
   inferences: InferenceRecord[];
 }
+
+// ── Webhook Management ───────────────────────────────────────────
+
+export interface WebhookInfo {
+  id: string;
+  name: string;
+  url: string;
+  description: string | null;
+  events: string[];
+  is_active: boolean;
+  // Delivery tracking
+  last_triggered_at: string | null;
+  last_success_at: string | null;
+  last_failure_at: string | null;
+  last_http_status: number | null;
+  last_error: string | null;
+  consecutive_failures: number;
+  total_deliveries: number;
+  total_failures: number;
+  // Metadata
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WebhookCreateResponse {
+  id: string;
+  name: string;
+  url: string;
+  events: string[];
+  secret: string;
+  is_active: boolean;
+  created_at: string;
+  warning: string;
+}
+
+export interface WebhookListResponse {
+  total: number;
+  webhooks: WebhookInfo[];
+}
+
+export interface WebhookTestResult {
+  success: boolean;
+  http_status: number | null;
+  response_body: string | null;
+  message: string;
+}
+
+export interface WebhookDelivery {
+  id: string;
+  event_type: string;
+  event_id: string | null;
+  http_status: number | null;
+  response_time_ms: number | null;
+  success: boolean;
+  error: string | null;
+  attempt_number: number;
+  delivered_at: string;
+}
+
+export interface WebhookDeliveryListResponse {
+  total: number;
+  deliveries: WebhookDelivery[];
+}

@@ -9,6 +9,7 @@ from app.models.baseline import Baseline
 from app.models.alert import Alert
 from app.models.audit_log import AuditLog
 from app.models.data_quality_metric import DataQualityMetric
+from app.models.webhook import WebhookConfig, WebhookDelivery
 
 __all__ = [
     "Base",
@@ -20,4 +21,6 @@ __all__ = [
     "Alert",
     "AuditLog",
     "DataQualityMetric",
+    "WebhookConfig",
+    "WebhookDelivery",
 ]

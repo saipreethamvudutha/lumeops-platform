@@ -43,6 +43,7 @@ from app.services.audit import AuditService
 from app.services.monitoring.baselines import BaselineService
 from app.services.monitoring.data_quality import DataQualityService
 from app.services.redaction import PIIRedactionEngine
+from app.services.webhooks import WebhookService
 
 router = APIRouter()
 
@@ -298,6 +299,75 @@ async def ingest_inference(
                 "timestamp": now.isoformat(),
             },
         )
+
+    # ── 9b. Webhook notifications (fire-and-forget) ──────────────
+    # LEARNING NOTE:
+    #   Webhooks deliver event payloads to tenant-configured HTTP endpoints.
+    #   Like Redis pub/sub, this is best-effort and non-blocking.
+    #   Payloads contain NO PHI — only metadata (alert type, inference ID,
+    #   model name, counts). This ensures HIPAA compliance even if the
+    #   receiving endpoint is outside the covered entity.
+    try:
+        webhook_service = WebhookService(db)
+
+        # Dispatch alert events to subscribed webhooks
+        for alert_info in alerts_list:
+            event_type = (
+                "outlier_detected"
+                if alert_info["type"] == "outlier"
+                else "data_quality_issue"
+                if alert_info["type"] == "data_quality"
+                else "alert_created"
+            )
+            await webhook_service.dispatch_event(
+                tenant_id=str(tenant_id),
+                event_type=event_type,
+                payload={
+                    "inference_id": inference_id,
+                    "model_name": model.model_name,
+                    "alert_type": alert_info["type"],
+                    "message": alert_info["message"],
+                    "prediction": payload.prediction,
+                    "timestamp": now.isoformat(),
+                },
+                event_id=inference_id,
+            )
+
+            # Also dispatch generic alert_created for all alerts
+            if event_type != "alert_created":
+                await webhook_service.dispatch_event(
+                    tenant_id=str(tenant_id),
+                    event_type="alert_created",
+                    payload={
+                        "inference_id": inference_id,
+                        "model_name": model.model_name,
+                        "alert_type": alert_info["type"],
+                        "message": alert_info["message"],
+                        "timestamp": now.isoformat(),
+                    },
+                    event_id=inference_id,
+                )
+
+        # Dispatch PII detection event if PHI was found
+        if redaction_result.report["total_pii_found"] > 0:
+            await webhook_service.dispatch_event(
+                tenant_id=str(tenant_id),
+                event_type="pii_detected",
+                payload={
+                    "inference_id": inference_id,
+                    "model_name": model.model_name,
+                    "pii_count": redaction_result.report["total_pii_found"],
+                    "pii_types": list(
+                        (redaction_result.report.get("redactions") or {}).keys()
+                    ),
+                    "max_sensitivity": max_sensitivity,
+                    "timestamp": now.isoformat(),
+                },
+                event_id=inference_id,
+            )
+    except Exception:
+        # Webhook failure must NEVER break inference processing
+        pass
 
     # ── 10. Check if we have enough data to initialize baseline ──
     if outlier_result.baseline_id is None:

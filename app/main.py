@@ -23,7 +23,7 @@ from fastapi.responses import ORJSONResponse
 
 from app.api.v1 import (
     api_keys, compliance, dashboard, encryption, health,
-    inference_list, ingest, models, timeseries, ws,
+    inference_list, ingest, models, timeseries, webhooks, ws,
 )
 from app.core.config import get_settings
 from app.core.database import close_db, init_db
@@ -228,6 +228,13 @@ def create_app() -> FastAPI:
         inference_list.router,
         prefix=f"{prefix}/inferences",
         tags=["inferences"],
+    )
+
+    # Webhook management
+    app.include_router(
+        webhooks.router,
+        prefix=f"{prefix}/webhooks",
+        tags=["webhooks"],
     )
 
     # WebSocket endpoint for real-time updates (auth via query param)

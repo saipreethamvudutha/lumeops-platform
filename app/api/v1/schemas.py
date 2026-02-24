@@ -278,3 +278,184 @@ class ErrorResponse(BaseModel):
     error: str
     detail: str
     request_id: str | None = None
+
+
+# ══════════════════════════════════════════════════════════════════
+#  Webhook Schemas
+# ══════════════════════════════════════════════════════════════════
+
+
+class WebhookCreateRequest(BaseModel):
+    """Request to create a new webhook configuration."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        description="Human-friendly label for this webhook",
+    )
+    url: str = Field(
+        ...,
+        min_length=10,
+        max_length=2048,
+        description="Delivery URL (must be HTTPS in production)",
+    )
+    description: str | None = Field(
+        None,
+        max_length=1000,
+        description="Optional description of what this webhook does",
+    )
+    events: list[str] = Field(
+        ...,
+        min_length=1,
+        description="Event types to subscribe to",
+    )
+    headers: dict[str, str] | None = Field(
+        None,
+        description="Optional custom headers to include with deliveries",
+    )
+
+    @field_validator("url")
+    @classmethod
+    def validate_url(cls, v: str) -> str:
+        """Validate webhook URL format."""
+        v = v.strip()
+        if not v.startswith(("https://", "http://")):
+            raise ValueError("URL must start with https:// or http://")
+        return v
+
+    @field_validator("events")
+    @classmethod
+    def validate_events(cls, v: list[str]) -> list[str]:
+        """Validate event types against allowed set."""
+        valid_events = {
+            "alert_created",
+            "outlier_detected",
+            "pii_detected",
+            "data_quality_issue",
+            "key_rotated",
+            "compliance_report",
+        }
+        for event in v:
+            if event not in valid_events:
+                raise ValueError(
+                    f"Invalid event type: {event}. "
+                    f"Valid types: {sorted(valid_events)}"
+                )
+        return v
+
+
+class WebhookUpdateRequest(BaseModel):
+    """Request to update an existing webhook."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = Field(None, min_length=1, max_length=255)
+    url: str | None = Field(None, min_length=10, max_length=2048)
+    description: str | None = None
+    events: list[str] | None = None
+    headers: dict[str, str] | None = None
+    is_active: bool | None = None
+
+    @field_validator("url")
+    @classmethod
+    def validate_url(cls, v: str | None) -> str | None:
+        if v is not None:
+            v = v.strip()
+            if not v.startswith(("https://", "http://")):
+                raise ValueError("URL must start with https:// or http://")
+        return v
+
+    @field_validator("events")
+    @classmethod
+    def validate_events(cls, v: list[str] | None) -> list[str] | None:
+        if v is not None:
+            valid_events = {
+                "alert_created", "outlier_detected", "pii_detected",
+                "data_quality_issue", "key_rotated", "compliance_report",
+            }
+            for event in v:
+                if event not in valid_events:
+                    raise ValueError(
+                        f"Invalid event type: {event}. "
+                        f"Valid types: {sorted(valid_events)}"
+                    )
+        return v
+
+
+class WebhookResponse(BaseModel):
+    """Webhook info response (secret partially masked)."""
+
+    id: str
+    name: str
+    url: str
+    description: str | None
+    events: list[str]
+    is_active: bool
+    # Delivery tracking
+    last_triggered_at: datetime | None
+    last_success_at: datetime | None
+    last_failure_at: datetime | None
+    last_http_status: int | None
+    last_error: str | None
+    consecutive_failures: int
+    total_deliveries: int
+    total_failures: int
+    # Metadata
+    created_at: datetime
+    updated_at: datetime
+
+
+class WebhookCreateResponse(BaseModel):
+    """Response after creating a webhook (includes full secret once)."""
+
+    id: str
+    name: str
+    url: str
+    events: list[str]
+    secret: str
+    is_active: bool
+    created_at: datetime
+    warning: str = (
+        "Save the signing secret now. "
+        "You will not be able to see it again."
+    )
+
+
+class WebhookListResponse(BaseModel):
+    """List of webhooks."""
+
+    total: int
+    webhooks: list[WebhookResponse]
+
+
+class WebhookTestResponse(BaseModel):
+    """Result of a webhook test delivery."""
+
+    success: bool
+    http_status: int | None
+    response_body: str | None
+    message: str
+
+
+class WebhookDeliveryResponse(BaseModel):
+    """Individual delivery record."""
+
+    id: str
+    event_type: str
+    event_id: str | None
+    http_status: int | None
+    response_time_ms: int | None
+    success: bool
+    error: str | None
+    attempt_number: int
+    delivered_at: datetime
+
+
+class WebhookDeliveryListResponse(BaseModel):
+    """List of webhook deliveries."""
+
+    total: int
+    deliveries: list[WebhookDeliveryResponse]

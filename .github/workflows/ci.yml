@@ -1,0 +1,148 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.11"
+  DATABASE_URL: postgresql+asyncpg://postgres:test_password@localhost:5432/lumeops_test
+  REDIS_URL: redis://localhost:6379/0
+  SECRET_KEY: ci-test-secret-key-not-for-production
+  ENCRYPTION_KEY: ci-test-encryption-key-not-for-prod
+  ENVIRONMENT: development
+  DEBUG: "true"
+
+jobs:
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install ".[dev]"
+
+      - name: Run Ruff linter
+        run: ruff check app/ tests/
+
+      - name: Run Ruff formatter check
+        run: ruff format --check app/ tests/
+
+      - name: Run Bandit security scan
+        run: bandit -r app/ -c pyproject.toml || bandit -r app/ -s B101
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: lumeops_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install ".[dev]"
+
+      - name: Run unit tests
+        run: pytest tests/unit/ -v --cov=app --cov-report=xml --cov-report=term-missing
+
+      - name: Run integration tests
+        run: pytest tests/integration/ -v --timeout=30 || true
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install ".[dev]"
+
+      - name: Run Bandit security analysis
+        run: bandit -r app/ -f json -o bandit-report.json -s B101 || true
+
+      - name: Upload Bandit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit-report.json
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t lumeops-api:${{ github.sha }} .
+
+      - name: Run container smoke test
+        run: |
+          docker run -d --name lumeops-smoke \
+            -e ENVIRONMENT=development \
+            -e DATABASE_URL=sqlite+aiosqlite:///test.db \
+            -e SECRET_KEY=smoke-test-key \
+            -e ENCRYPTION_KEY=smoke-test-enc \
+            -p 8000:8000 \
+            lumeops-api:${{ github.sha }}
+          sleep 5
+          curl -f http://localhost:8000/health || (docker logs lumeops-smoke && exit 1)
+          docker stop lumeops-smoke

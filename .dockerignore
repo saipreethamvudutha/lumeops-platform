@@ -1,0 +1,61 @@
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.eggs/
+build/
+dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Git
+.git/
+.gitignore
+
+# Docker
+.docker/
+.dockerignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment files (secrets)
+.env
+.env.local
+.env.production
+
+# Secrets
+*.pem
+*.key
+*.crt
+credentials.json
+service-account.json
+
+# Logs
+*.log
+logs/
+
+# Documentation (not needed in image)
+docs/
+*.md
+
+# Node (if frontend added later)
+node_modules/
+frontend/node_modules/

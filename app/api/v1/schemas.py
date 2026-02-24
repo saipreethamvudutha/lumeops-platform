@@ -698,3 +698,118 @@ class GroundTruthBatchResponse(BaseModel):
     skipped: int
     total: int
     errors: list[dict[str, str]] | None = None
+
+
+# ══════════════════════════════════════════════════════════════════
+#  Tenant Settings & Data Retention Schemas
+# ══════════════════════════════════════════════════════════════════
+
+
+class TenantSettingsResponse(BaseModel):
+    """Full tenant settings for the Settings page."""
+
+    id: str
+    name: str
+    customer_type: str | None
+    contact_email: str | None
+    contact_phone: str | None
+    plan: str
+    is_active: bool
+    timezone: str
+    data_residency: str
+    alert_email: str | None
+    alert_slack_webhook: str | None
+    notification_preferences: dict[str, Any]
+    encryption_key_version: int
+    last_key_rotation: datetime | None
+    key_rotation_count: int
+    retention: dict[str, Any]
+    created_at: datetime | None
+
+
+class TenantSettingsUpdateRequest(BaseModel):
+    """Request to update tenant settings."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = Field(None, min_length=1, max_length=255)
+    customer_type: str | None = Field(None, max_length=50)
+    contact_email: str | None = Field(None, max_length=255)
+    contact_phone: str | None = Field(None, max_length=50)
+    timezone: str | None = Field(None, max_length=50)
+    alert_email: str | None = Field(None, max_length=255)
+    alert_slack_webhook: str | None = Field(None, max_length=500)
+    notification_preferences: dict[str, bool] | None = None
+
+    @field_validator("timezone")
+    @classmethod
+    def validate_timezone(cls, v: str | None) -> str | None:
+        if v is not None:
+            valid_timezones = {
+                "UTC", "US/Eastern", "US/Central", "US/Mountain", "US/Pacific",
+                "Europe/London", "Europe/Berlin", "Europe/Paris",
+                "Asia/Tokyo", "Asia/Shanghai", "Asia/Kolkata",
+                "Australia/Sydney", "America/New_York", "America/Chicago",
+                "America/Denver", "America/Los_Angeles",
+            }
+            if v not in valid_timezones:
+                raise ValueError(
+                    f"Invalid timezone: {v}. Use standard timezone strings."
+                )
+        return v
+
+    @field_validator("customer_type")
+    @classmethod
+    def validate_customer_type(cls, v: str | None) -> str | None:
+        if v is not None:
+            valid_types = {"hospital", "insurer", "vendor", "research", "government"}
+            if v not in valid_types:
+                raise ValueError(
+                    f"Invalid customer_type: {v}. Valid: {sorted(valid_types)}"
+                )
+        return v
+
+
+class RetentionPolicyResponse(BaseModel):
+    """Current retention policy for a tenant."""
+
+    inference_retention_days: int | None
+    alert_retention_days: int | None
+    webhook_delivery_retention_days: int | None
+    retention_policy_updated_at: datetime | None
+    last_retention_cleanup_at: datetime | None
+
+
+class RetentionPolicyUpdateRequest(BaseModel):
+    """Request to update retention policy."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    inference_retention_days: int | None = Field(
+        default=None,
+        ge=365,
+        description="Days to keep inferences (min 365 for HIPAA, null = forever)",
+    )
+    alert_retention_days: int | None = Field(
+        default=None,
+        ge=30,
+        description="Days to keep resolved alerts (min 30, null = forever)",
+    )
+    webhook_delivery_retention_days: int | None = Field(
+        default=None,
+        ge=7,
+        description="Days to keep webhook delivery logs (min 7, null = forever)",
+    )
+
+
+class RetentionCleanupResponse(BaseModel):
+    """Result of a retention cleanup operation."""
+
+    tenant_id: str
+    tenant_name: str
+    dry_run: bool
+    inferences_deleted: int
+    alerts_deleted: int
+    webhook_deliveries_deleted: int
+    total_deleted: int
+    executed_at: datetime

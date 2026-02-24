@@ -86,6 +86,34 @@ class Tenant(Base, TimestampMixin):
         Integer, default=0, server_default="0", nullable=False
     )
 
+    # ── Data Retention Policies ────────────────────────────────────
+    # Per-tenant configurable TTLs. NULL = keep forever (no auto-delete).
+    # HIPAA requires minimum 6-year retention; these policies enforce
+    # *maximum* retention to limit liability and storage costs.
+    inference_retention_days: Mapped[int | None] = mapped_column(
+        Integer, nullable=True
+    )  # Days to keep inference records (NULL = forever)
+    alert_retention_days: Mapped[int | None] = mapped_column(
+        Integer, nullable=True
+    )  # Days to keep resolved alerts (NULL = forever)
+    webhook_delivery_retention_days: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, server_default="90"
+    )  # Days to keep webhook delivery logs (default 90)
+    retention_policy_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_retention_cleanup_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    # ── Tenant Settings ────────────────────────────────────────────
+    timezone: Mapped[str] = mapped_column(
+        String(50), default="UTC", server_default="UTC", nullable=False
+    )
+    notification_preferences: Mapped[dict | None] = mapped_column(
+        JSONB, nullable=True
+    )  # {"email": true, "slack": true, "webhook": true}
+
     # Metadata
     metadata_json: Mapped[dict | None] = mapped_column(
         JSONB, nullable=True, default=dict

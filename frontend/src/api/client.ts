@@ -21,6 +21,8 @@ import type {
   PerformanceTimeseriesResponse,
   GroundTruthResult,
   GroundTruthBatchResult,
+  TenantSettings,
+  RetentionCleanupResult,
 } from '../types/api';
 
 const api = axios.create({
@@ -245,6 +247,41 @@ export async function submitGroundTruthBatch(
   const { data } = await api.post<GroundTruthBatchResult>('/api/v1/models/ground-truth/batch', {
     items,
   });
+  return data;
+}
+
+// ── Tenant Settings & Data Retention ─────────────────────────────
+
+export async function fetchTenantSettings(): Promise<TenantSettings> {
+  const { data } = await api.get<TenantSettings>('/api/v1/settings');
+  return data;
+}
+
+export async function updateTenantSettings(
+  updates: Partial<Pick<TenantSettings, 'name' | 'customer_type' | 'contact_email' | 'contact_phone' | 'timezone' | 'alert_email' | 'alert_slack_webhook' | 'notification_preferences'>>,
+): Promise<TenantSettings> {
+  const { data } = await api.put<TenantSettings>('/api/v1/settings', updates);
+  return data;
+}
+
+export async function updateRetentionPolicy(
+  policy: {
+    inference_retention_days?: number | null;
+    alert_retention_days?: number | null;
+    webhook_delivery_retention_days?: number | null;
+  },
+): Promise<TenantSettings['retention']> {
+  const { data } = await api.put<TenantSettings['retention']>('/api/v1/settings/retention', policy);
+  return data;
+}
+
+export async function previewRetentionCleanup(): Promise<RetentionCleanupResult> {
+  const { data } = await api.post<RetentionCleanupResult>('/api/v1/settings/retention/preview');
+  return data;
+}
+
+export async function executeRetentionCleanup(): Promise<RetentionCleanupResult> {
+  const { data } = await api.post<RetentionCleanupResult>('/api/v1/settings/retention/cleanup');
   return data;
 }
 

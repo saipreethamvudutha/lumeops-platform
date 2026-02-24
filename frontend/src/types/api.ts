@@ -407,3 +407,48 @@ export interface GroundTruthBatchResult {
   total: number;
   errors: Array<{ inference_id: string; error: string }> | null;
 }
+
+// ── Tenant Settings & Data Retention ────────────────────────────
+
+export interface RetentionPolicy {
+  inference_retention_days: number | null;
+  alert_retention_days: number | null;
+  webhook_delivery_retention_days: number | null;
+  policy_updated_at: string | null;
+  last_cleanup_at: string | null;
+}
+
+export interface TenantSettings {
+  id: string;
+  name: string;
+  customer_type: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  plan: string;
+  is_active: boolean;
+  timezone: string;
+  data_residency: string;
+  alert_email: string | null;
+  alert_slack_webhook: string | null;
+  notification_preferences: {
+    email: boolean;
+    slack: boolean;
+    webhook: boolean;
+  };
+  encryption_key_version: number;
+  last_key_rotation: string | null;
+  key_rotation_count: number;
+  retention: RetentionPolicy;
+  created_at: string | null;
+}
+
+export interface RetentionCleanupResult {
+  tenant_id: string;
+  tenant_name: string;
+  dry_run: boolean;
+  inferences_deleted: number;
+  alerts_deleted: number;
+  webhook_deliveries_deleted: number;
+  total_deleted: number;
+  executed_at: string;
+}

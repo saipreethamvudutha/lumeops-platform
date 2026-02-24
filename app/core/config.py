@@ -90,6 +90,12 @@ class Settings(BaseSettings):
     AUDIT_RETENTION_YEARS: int = 7
     AUDIT_LOG_TO_STDOUT: bool = True
 
+    # ── Data Retention ─────────────────────────────────────────────
+    RETENTION_CLEANUP_HOUR: int = 2  # Hour (UTC) to run daily cleanup
+    RETENTION_MIN_INFERENCE_DAYS: int = 365  # HIPAA minimum
+    RETENTION_MIN_ALERT_DAYS: int = 30
+    RETENTION_MIN_WEBHOOK_DAYS: int = 7
+
     @field_validator("ENVIRONMENT")
     @classmethod
     def validate_environment(cls, v: str) -> str:

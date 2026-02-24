@@ -23,7 +23,8 @@ from fastapi.responses import ORJSONResponse
 
 from app.api.v1 import (
     alerts, api_keys, compliance, dashboard, encryption, health,
-    inference_list, ingest, models, performance, timeseries, webhooks, ws,
+    inference_list, ingest, models, performance, tenant_settings,
+    timeseries, webhooks, ws,
 )
 from app.core.config import get_settings
 from app.core.database import close_db, init_db
@@ -63,9 +64,16 @@ async def lifespan(app: FastAPI):
     await event_publisher.connect()
     logger.info("pubsub_publisher_initialized")
 
+    # Start background scheduler for periodic tasks (retention cleanup)
+    from app.core.scheduler import setup_scheduler, shutdown_scheduler
+
+    setup_scheduler()
+    logger.info("background_scheduler_started")
+
     yield
 
     # ── Shutdown ─────────────────────────────────────────────────
+    shutdown_scheduler()
     await event_publisher.close()
     await close_es_client()
     await close_db()
@@ -249,6 +257,13 @@ def create_app() -> FastAPI:
         webhooks.router,
         prefix=f"{prefix}/webhooks",
         tags=["webhooks"],
+    )
+
+    # Tenant settings & data retention
+    app.include_router(
+        tenant_settings.router,
+        prefix=f"{prefix}/settings",
+        tags=["settings"],
     )
 
     # WebSocket endpoint for real-time updates (auth via query param)

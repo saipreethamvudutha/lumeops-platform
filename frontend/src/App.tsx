@@ -8,6 +8,7 @@ import { AlertsPage } from './pages/AlertsPage';
 import { WebhooksPage } from './pages/WebhooksPage';
 import { ModelsPage } from './pages/ModelsPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { AuditLogsPage } from './pages/AuditLogsPage';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
           <Route path="/models" element={<ModelsPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/compliance" element={<CompliancePage />} />
+          <Route path="/audit-logs" element={<AuditLogsPage />} />
           <Route path="/api-keys" element={<ApiKeysPage />} />
           <Route path="/webhooks" element={<WebhooksPage />} />
           <Route path="/settings" element={<SettingsPage />} />

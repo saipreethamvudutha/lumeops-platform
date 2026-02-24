@@ -656,13 +656,109 @@ curl -s 'http://localhost:9200/lumeops-audit-read/_search' | python3 -m json.too
 
 ---
 
+## Session 11: Audit Log Viewer & Trail Management
+
+**Date:** 2026-02-24
+**Goal:** Make audit trail data accessible through a full-featured viewer UI
+
+### What We Built
+
+| Component | Status | What It Does |
+|---|---|---|
+| Enhanced Audit Trail API | COMPLETE | Added resource_type, status, multi-field search filters |
+| Stats Endpoint | COMPLETE | `GET /audit-trail/stats` — event breakdown by action and resource |
+| CSV Export Endpoint | COMPLETE | `GET /audit-trail/export` — downloadable CSV, 10,000 row limit |
+| AuditLogsPage | COMPLETE | Full page with stats cards, filter bar, paginated table, detail modal |
+| API Client Functions | COMPLETE | 3 new functions: fetchAuditTrail, fetchAuditTrailStats, downloadAuditTrailCsv |
+| TypeScript Interfaces | COMPLETE | AuditLogEntry, AuditTrailResponse, AuditTrailStats |
+| Unit Tests | COMPLETE | 42 new tests across 7 test classes |
+| Navigation | COMPLETE | Sidebar link with ScrollText icon |
+
+### Architecture Decisions
+
+### ADR-020: Why Multi-Field OR Search (not single-field ILIKE)
+
+**Decision:** The `search` parameter queries action, resource_id, resource_type,
+and ip_address simultaneously using OR.
+
+**Why:**
+- Audit investigation workflows are exploratory — users type a keyword and expect
+  matches anywhere relevant
+- Searching "192.168" should find events by IP address
+- Searching "webhook" should find WEBHOOK_CREATED and WEBHOOK_DELETED actions
+- AND logic would require exact matches across all fields, defeating the purpose
+- ILIKE (not full-text search) because audit field values are short, structured strings
+
+### ADR-021: Why PostgreSQL for the Audit Viewer (not Elasticsearch)
+
+**Decision:** The audit log viewer queries PostgreSQL, not Elasticsearch.
+
+**Why:**
+- PostgreSQL is the source of truth; ES replication may lag
+- SQLAlchemy queries are simpler for basic filters and pagination
+- No additional service dependency for the critical audit viewer
+- ACID guarantees — no partial or phantom audit entries
+- ES can be used later for full-text search across the `details` JSONB field
+
+### ADR-022: Why 50 Items Per Page
+
+**Decision:** `PAGE_SIZE = 50` for the audit table.
+
+**Why:**
+- Compliance officers scan large volumes of events (10-25 rows wastes time)
+- 100+ rows causes noticeable rendering lag with React state updates
+- 50 matches industry standard (AWS CloudTrail, GitHub, Datadog)
+
+### Lessons Learned in Session 11
+
+> **Lesson 16: SQLAlchemy `default=` is not Python `__init__` default.**
+> `mapped_column(default="success")` only applies the default at `session.flush()`,
+> not when you create the object in Python. This is a common gotcha that caused
+> test failures: `AuditLog(tenant_id="t1", action="TEST").status` is `None`,
+> not `"success"`. Tests must verify `AuditLog.__table__.columns["status"].default.arg`
+> instead.
+
+> **Lesson 17: Search UX beats search precision in audit tools.**
+> The first implementation searched only `resource_id`, which returned 0 results
+> for "webhook". After expanding to OR search across action, resource_type,
+> resource_id, and ip_address, the same query found both webhook events.
+> In investigation tools, recall matters more than precision.
+
+### Test Results
+
+```
+376 unit tests: ALL PASSING (4.92s)
+TypeScript: 0 errors
+Vite Build: 2839 modules, clean production build
+
+New tests (tests/unit/test_audit_trail.py):
+  - TestAuditLogModel: 8 tests (create, nullable, defaults, indexes)
+  - TestAuditActionTypes: 13 tests (12 action types + field length)
+  - TestResourceTypes: 7 tests (6 types + nullable)
+  - TestAuditTrailResponseFormat: 3 tests (pagination, entry, stats)
+  - TestPIITracking: 3 tests (detected, not detected, structure)
+  - TestCSVExportFormat: 2 tests (headers, row generation)
+  - TestAuditTrailConfiguration: 6 tests (file existence, nav, route)
+```
+
+### Endpoint Verification
+
+```
+GET /audit-trail?days=30&limit=5          → 54 total, 5 returned, has_more=true
+GET /audit-trail?action=PII_DETECTED      → 10 PII redaction events
+GET /audit-trail?resource_type=api_key    → 4 API key events
+GET /audit-trail?search=webhook           → 2 webhook events (multi-field OR)
+GET /audit-trail?search=192.168           → 33 events by IP address
+GET /audit-trail/stats?days=30            → 54 events, 20 PII, 12 action types
+GET /audit-trail/export?days=30           → Valid CSV, 54 rows + header
+```
+
+---
+
 ## What's Next
 
-- Key rotation automation for per-tenant encryption
-- Rate limiting integration with Redis
-- Real-time WebSocket updates for dashboard
-- Production deployment configuration (ECS, ALB, CloudFront)
-- Automated end-to-end browser tests (Playwright)
-- Frontend: add inference log viewer page
-- Frontend: add real-time chart data from API (replace mock data)
-- RBAC (role-based access control) for multi-user tenants
+- Alert Rule Builder (custom alert conditions and thresholds)
+- Onboarding Wizard (guided first-time setup flow)
+- E2E Integration Tests (Playwright browser automation)
+- Real-Time Live Monitoring (WebSocket-based event stream)
+- Production deployment to cloud (ECS, ALB, CloudFront)

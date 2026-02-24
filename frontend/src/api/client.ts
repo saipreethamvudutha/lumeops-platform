@@ -26,6 +26,8 @@ import type {
   GroundTruthBatchResult,
   TenantSettings,
   RetentionCleanupResult,
+  AuditTrailResponse,
+  AuditTrailStats,
 } from '../types/api';
 
 const api = axios.create({
@@ -312,6 +314,64 @@ export async function previewRetentionCleanup(): Promise<RetentionCleanupResult>
 export async function executeRetentionCleanup(): Promise<RetentionCleanupResult> {
   const { data } = await api.post<RetentionCleanupResult>('/api/v1/settings/retention/cleanup');
   return data;
+}
+
+// ── Audit Trail ──────────────────────────────────────────────────
+
+export async function fetchAuditTrail(params: {
+  days?: number;
+  action?: string;
+  resource_type?: string;
+  status?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+} = {}): Promise<AuditTrailResponse> {
+  const sp = new URLSearchParams();
+  if (params.days) sp.set('days', String(params.days));
+  if (params.action) sp.set('action', params.action);
+  if (params.resource_type) sp.set('resource_type', params.resource_type);
+  if (params.status) sp.set('status', params.status);
+  if (params.search) sp.set('search', params.search);
+  if (params.limit) sp.set('limit', String(params.limit));
+  if (params.offset !== undefined) sp.set('offset', String(params.offset));
+  const qs = sp.toString();
+  const { data } = await api.get<AuditTrailResponse>(
+    `/api/v1/reports/audit-trail${qs ? `?${qs}` : ''}`,
+  );
+  return data;
+}
+
+export async function fetchAuditTrailStats(days: number = 30): Promise<AuditTrailStats> {
+  const { data } = await api.get<AuditTrailStats>(
+    `/api/v1/reports/audit-trail/stats?days=${days}`,
+  );
+  return data;
+}
+
+export async function downloadAuditTrailCsv(params: {
+  days?: number;
+  action?: string;
+  resource_type?: string;
+} = {}): Promise<void> {
+  const sp = new URLSearchParams();
+  if (params.days) sp.set('days', String(params.days));
+  if (params.action) sp.set('action', params.action);
+  if (params.resource_type) sp.set('resource_type', params.resource_type);
+  const qs = sp.toString();
+  const response = await api.get(
+    `/api/v1/reports/audit-trail/export${qs ? `?${qs}` : ''}`,
+    { responseType: 'blob' },
+  );
+  const blob = new Blob([response.data], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `lumeops-audit-trail-${new Date().toISOString().split('T')[0]}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
 }
 
 // ── API Key Storage ──────────────────────────────────────────────

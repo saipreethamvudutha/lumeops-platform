@@ -473,3 +473,37 @@ export interface RetentionCleanupResult {
   total_deleted: number;
   executed_at: string;
 }
+
+// ── Audit Trail ─────────────────────────────────────────────────
+
+export interface AuditLogEntry {
+  id: string;
+  action: string;
+  resource_type: string | null;
+  resource_id: string | null;
+  api_key_prefix: string | null;
+  ip_address: string | null;
+  status: string;
+  error_message: string | null;
+  pii_detected: boolean;
+  pii_types: Record<string, number> | null;
+  timestamp: string;
+  details: Record<string, unknown> | null;
+}
+
+export interface AuditTrailResponse {
+  total: number;
+  limit: number;
+  offset: number;
+  has_more: boolean;
+  entries: AuditLogEntry[];
+}
+
+export interface AuditTrailStats {
+  period_days: number;
+  total_events: number;
+  pii_events: number;
+  events_by_action: Record<string, number>;
+  events_by_resource_type: Record<string, number>;
+  generated_at: string;
+}
